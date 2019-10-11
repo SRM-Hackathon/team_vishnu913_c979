@@ -22,8 +22,8 @@ images_path = os.path.join(os.getcwd(), "media", "images")
 
 
 def send_msg(founder, loser):
-    account_sid = 'AC5daab66ec1ec4885baf7803931eae35f'
-    auth_token = 'da848359045acb4ba5e65c5af7dece83'
+    account_sid = ''
+    auth_token = ''
     client = Client(account_sid, auth_token)
 
     message = client.messages.create(
