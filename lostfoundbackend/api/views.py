@@ -18,11 +18,41 @@ import threading
 import face_recognition
 from django.http import HttpResponse
 from . import align_faces
+from twilio.rest import Client
 
 #! Functions
 
 
+def cam_testing(cam):
+    # ! Testing the images obtained from camera with our images
+        media_path = os.path.join(os.getcwd(), "media")
+        target_img_path = os.path.join(media_path, str(cam.image))
+        target_img = face_recognition.load_image_file(target_img_path)
+        print(target_img)
+        target_img_enc = face_recognition.face_encodings(target_img)[0]
+        all_objs = Loser.objects.filter(location=cam.location)
+        if len(all_objs):
+            try :
+                for img_obj in all_objs:
+                    temp_img = face_recognition.load_image_file(img_obj.img)
+                    temp_img_enc = face_recognition.face_encodings(temp_img)[0]
+                    results = face_recognition.compare_faces(
+                        [target_img_enc], temp_img_enc)
+                    if results[0] == True:
+                        print("Found a match ")
+
+                        #! To Do
+                        #! Sending Message and push notifications
+                        send_msg(record.founder)
+
+                    else:
+                        print("Not Found")
+                        cam.delete()
+            except Exception as e:
+                     pass
+
 def create_message(msg):
+    # ! Message for the Whatsapp Bot
     response = MessagingResponse()
     response.message(msg)
     return str(response)
@@ -32,26 +62,27 @@ images_path = os.path.join(os.getcwd(), "media")
 
 
 def send_msg(founder, loser):
-    account_sid = 'AC5daab66ec1ec4885baf7803931eae35f'
-    auth_token = 'da848359045acb4ba5e65c5af7dece83'
+    # ! Sending msg to the respective founders and loser
+    account_sid = '#'
+    auth_token = '#'
     client = Client(account_sid, auth_token)
 
     message = client.messages.create(
         body=f'Your child is found by {founder.user.username} and number is {founder.user.profile.phone_no}',
         from_='+1(205)448-6204',
-        to=f'+91{loser.profile.phone_number}'
+        to=f'+91{loser.user.profile.phone_no}'
     )
     message2 = client.messages.create(
         body=f'The child you posted is lost by {loser.user.username} and number is {loser.user.profile.phone_no}',
         from_='+1(205)448-6204',
-        to=f'+91{founder.profile.phone_number}'
+        to=f'+91{founder.user.profile.phone_no}'
     )
 
     print(message.sid)
 
 
 def losttesting(obj):
-
+    #!Searching for the lost child
     media_path = os.path.join(os.getcwd(), "media")
     target_img_path = os.path.join(media_path, str(obj.img))
     target_img = face_recognition.load_image_file(target_img_path)
@@ -66,23 +97,23 @@ def losttesting(obj):
             results = face_recognition.compare_faces(
                 [target_img_enc], temp_img_enc)
             if results[0] == True:
+                # ! Creating Records
                 print("Found a match ")
                 record = Record()
 
+                record.loser = obj
+                record.founder = img_obj
                 record.save()
-                record.loser.add(obj)
-                record.founder.add(img_obj)
                 send_msg(record.founder, record.loser)
 
-                #! To Do
-                #! Sending Message and push notifications
+                
 
             else:
                 print("Not Found")
 
 
 def foundtesting(obj):
-
+    #! Searching for the found child
     media_path = os.path.join(os.getcwd(), "media")
     target_img_path = os.path.join(media_path, str(obj.img))
     target_img = face_recognition.load_image_file(target_img_path)
@@ -100,10 +131,9 @@ def foundtesting(obj):
                 print("Found a match ")
                 record = Record()
 
+                record.founder = obj
+                record.loser = img_obj
                 record.save()
-                record.founder.add(obj)
-                record.loser.add(img_obj)
-
                 #! To Do
                 #! Sending Message and push notifications
                 send_msg(record.founder, record.loser)
@@ -113,6 +143,7 @@ def foundtesting(obj):
 
 
 def whatsapplost(obj, lost):
+    #! Checking in Whatsapp 
     if lost:
         media_path = os.path.join(os.getcwd(), "media")
         target_img_path = os.path.join(media_path, str(obj.img))
@@ -134,6 +165,7 @@ def whatsapplost(obj, lost):
 
 
 class LoginView(APIView):
+    #! LoginView
     permission_classes = (AllowAny,)
     def post(self, request):
 
@@ -155,6 +187,7 @@ class LoginView(APIView):
 
 
 class RegisterView(APIView):
+    # ! Register View
     permission_classes = (AllowAny,)
 
     def post(self, request):
@@ -178,6 +211,7 @@ class RegisterView(APIView):
 
 
 class FoundPostView(APIView):
+    # ! Posting a found child
     permission_classes = (IsAuthenticated,)
     authentication_classes = (TokenAuthentication,)
 
@@ -196,6 +230,7 @@ class FoundPostView(APIView):
         founder.name = request.POST.get('name')
         founder.description = request.POST.get('description')
         founder.location = request.POST.get('location')
+        founder.marker_id=request.POST.get('marker_id')
         founder.date_found = request.POST.get('date')
         founder.save()
         align_faces.align_face(os.path.join(images_path, str(founder.img)))
@@ -207,6 +242,7 @@ class FoundPostView(APIView):
 
 
 class LostPostView(APIView):
+    #  ! Posting a lost child
     permission_classes = (IsAuthenticated,)
     authentication_classes = (TokenAuthentication,)
 
@@ -216,6 +252,7 @@ class LostPostView(APIView):
         loser.user = request.user
         loser.latitude = request.POST.get('latitude')
         loser.longitude = request.POST.get('longitude')
+        loser.marker_id=request.POST.get('marker_id')
         data = request.POST.get('image')
 
         name = str(uuid.uuid4())
@@ -241,6 +278,7 @@ def check_record(founder):
 
 
 class LostView(APIView):
+    # ! Fees in Website
     permission_classes = (IsAuthenticated,)
     authentication_classes = (TokenAuthentication,)
 
@@ -249,17 +287,20 @@ class LostView(APIView):
             {
                 'name': loser.user.username,
                 'email': loser.user.email,
-                'phone_no': loser.user.profile.phone_no,
                 'description': loser.description,
                 'img': loser.img.url,
                 'location': loser.location,
+                'latitude':loser.latitude,
+                'longitude':loser.longitude,
                 'date_lost': loser.date_lost,
+                'phone_no':loser.user.profile.phone_no
 
             }
             for loser in Loser.objects.all()])
 
 
 class FoundView(APIView):
+    # !Feed in website
     permission_classes = (IsAuthenticated,)
     authentication_classes = (TokenAuthentication,)
 
@@ -272,7 +313,10 @@ class FoundView(APIView):
                 'description': founder.description,
                 'img': founder.img.url,
                 'location': founder.location,
-                'date_lost': founder.date_lost
+                'latitude':founder.latitude,
+                'longitude':founder.longitude,
+                'date_found': founder.date_found,
+                'phone_no':founder.user.profile.phone_no
 
             }
             for founder in Founder.objects.all()])
@@ -292,7 +336,7 @@ class MyFoundView(APIView):
                 'description': founder.description,
                 'img': founder.img.url,
                 'location': founder.location,
-                'date_lost': founder.date_lost,
+                'date_lost': founder.date_found,
                 'latitude': founder.latitude,
                 'longitude': founder.longitude,
 
@@ -321,6 +365,7 @@ class MyLostView(APIView):
 
 
 class BotView(APIView):
+    # !Handler fot Whatsapp Bot
     permission_classes = (AllowAny,)
 
     def get(self, request):
@@ -376,30 +421,36 @@ class BotView(APIView):
 
 
 class CamView(APIView):
+     # ! Processing Live Feed from Camera
     permission_classes = (AllowAny,)
 
     def post(self, request):
         print(request.FILES.get('file'))
+        cam = CameraModel()
+        cam.image = request.FILES.get('file')
+        cam.location = request.POST.get('loc')
+        cam.save()
+        cam_testing(cam)
         return Response()
 
 
 class Dummy(APIView):
     def post(self, request):
-        print(request.POST)
-        print(request.FILES)
+
         return Response()
 
 
 class FoundHomeView(APIView):
-    permission_classes = (AllowAny,)
+  permission_classes = (IsAuthenticated,)
+  authentication_classes = (TokenAuthentication,)
 
-    def get(self, request):
+  def get(self, request):
         records = []
-        for image in request.user.founder.founderimage_set.all():
-            for record in image.matchedrecord_set.all():
+        for image in request.user.founder_set.all():
+            for record in image.record_set.all():
                 temp = {
-                    'loser_name': record.loser.loser.user.username,
-                    'loser_num': record.loser.loser.user.profile.phone_number,
+                    'loser_name': record.loser.user.username,
+                    'loser_num': record.loser.user.profile.phone_no,
 
                     'loser_location': record.loser.location,
                     'loser_img': record.loser.img.url,
@@ -412,17 +463,17 @@ class FoundHomeView(APIView):
         return Response(records)
 
 
-class LoserHomeView(APIView):
+class LostHomeView(APIView):
     permission_classes = (IsAuthenticated,)
     authentication_classes = (TokenAuthentication,)
 
     def get(self, request):
         records = []
-        for image in request.user.loser.loserimage_set.all():
-            for record in image.matchedrecord_set.all():
+        for image in request.user.loser_set.all():
+            for record in image.record_set.all():
                 temp = {
-                    'founder_name': record.founder.founder.user.username,
-                    'founder_num': record.founder.founder.user.profile.phone_number,
+                    'founder_name': record.founder.user.username,
+                    'founder_num': record.founder.user.profile.phone_no,
 
                     'founder_location': record.founder.location,
                     'loser_img': record.loser.img.url,
