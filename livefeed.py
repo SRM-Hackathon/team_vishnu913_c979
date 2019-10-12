@@ -7,14 +7,15 @@ import requests
 import threading
 import numpy as np
 
-
+#sending extracted face to the server
 def send_to_server(image):
     image = cv2.resize(image,(300,300))
     encoded = cv2.imencode(".jpg",image)[1]
     file = {"file":("image.jpg",encoded.tostring(),'image/jpeg',{'Expires':'0'})}
     data = {"loc":"Gandhipuram"}
-    requests.post("http://87046cfe.ngrok.io/cam/",files=file,data=data)
+    requests.post("server url",files=file,data=data)
 
+#gamma correction to increase the exposure and brigntness of image
 def adjust_gamma(image,gamma):
     invgamma = 1.0/gamma
     table = np.array([((i/255.0)**invgamma)*255 for i in np.arange(0,256)]).astype("uint8")
@@ -25,6 +26,8 @@ camera = PiCamera()
 camera.resolution = (640, 480)
 camera.framerate = 80
 rawCapture = PiRGBArray(camera, size=(640, 480))
+
+#using pre trained haar cascade xonfiguratio file to detect face landmarks
 faceCascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_alt2.xml")
 
  
@@ -34,11 +37,11 @@ time.sleep(0.1)
 # capture frames from the camera
 for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
     # grab the raw NumPy array representing the image, then initialize the timestamp
-    # and occupied/unoccupied text
+
     image = frame.array
     image = adjust_gamma(image,1.5)
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
+#detecting face land marks
     faces = faceCascade.detectMultiScale(
     gray,
     scaleFactor=1.3,
@@ -46,11 +49,11 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
     minSize=(30, 30)
     )
 
-
+#converting to grayscale
     for (x, y, w, h) in faces:
         roi_color = image[y:y + h, x:x + w].copy()
         threading.Thread(target=send_to_server,args=(),kwargs={"image":roi_color}).start()
-    
+#drawing rectangle over image
     for (x,y,w,h) in faces:
         cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
      
