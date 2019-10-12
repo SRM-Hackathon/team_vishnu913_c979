@@ -23,33 +23,39 @@ from twilio.rest import Client
 #! Functions
 
 
-def cam_testing(cam):
+def cam_testing(founder_cam):
     # ! Testing the images obtained from camera with our images
-        media_path = os.path.join(os.getcwd(), "media")
-        target_img_path = os.path.join(media_path, str(cam.image))
-        target_img = face_recognition.load_image_file(target_img_path)
-        print(target_img)
-        target_img_enc = face_recognition.face_encodings(target_img)[0]
-        all_objs = Loser.objects.filter(location=cam.location)
-        if len(all_objs):
-            try :
-                for img_obj in all_objs:
-                    temp_img = face_recognition.load_image_file(img_obj.img)
-                    temp_img_enc = face_recognition.face_encodings(temp_img)[0]
-                    results = face_recognition.compare_faces(
-                        [target_img_enc], temp_img_enc)
-                    if results[0] == True:
-                        print("Found a match ")
+    media_path = os.path.join(os.getcwd(), "media")
+    target_img_path = os.path.join(media_path, str(founder_cam.img))
+    target_img = face_recognition.load_image_file(target_img_path)
+    print(target_img)
+    faces = face_recognition.face_encodings(target_img)
+    if len(faces) == 0:
+        print("Not Found")
+        return
+    else:
+        target_img_enc = faces[0]
+    all_objs = Loser.objects.filter(location=founder_cam.location)
+    for img_obj in all_objs:
+        if img_obj.record_set.all().count() == 0:
+            temp_img = face_recognition.load_image_file(img_obj.img)
+            temp_img_enc = face_recognition.face_encodings(temp_img)[0]
+            results = face_recognition.compare_faces(
+                [target_img_enc], temp_img_enc)
+            if results[0] == True:
+                print("Found a match ")
 
-                        #! To Do
-                        #! Sending Message and push notifications
-                        send_msg(record.founder)
+                #! To Do
+                #! Sending Message and push notifications
+                #send_msg(img_obj.founder)
+                record = Record()
+                record.loser = img_obj
+                record.camera = True
+                record.founder=founder_cam
+                record.save()
+            else:
+                print("Not Found")
 
-                    else:
-                        print("Not Found")
-                        cam.delete()
-            except Exception as e:
-                     pass
 
 def create_message(msg):
     # ! Message for the Whatsapp Bot
@@ -87,7 +93,12 @@ def losttesting(obj):
     target_img_path = os.path.join(media_path, str(obj.img))
     target_img = face_recognition.load_image_file(target_img_path)
     print(target_img)
-    target_img_enc = face_recognition.face_encodings(target_img)[0]
+    faces = face_recognition.face_encodings(target_img)
+    if len(faces) == 0:
+        print("!!Not Found")
+        return
+    else:
+        target_img_enc = faces[0]
     all_objs = Founder.objects.filter(location=obj.location)
     if len(all_objs):
 
@@ -105,8 +116,6 @@ def losttesting(obj):
                 record.founder = img_obj
                 record.save()
                 send_msg(record.founder, record.loser)
-
-                
 
             else:
                 print("Not Found")
@@ -143,7 +152,7 @@ def foundtesting(obj):
 
 
 def whatsapplost(obj, lost):
-    #! Checking in Whatsapp 
+    #! Checking in Whatsapp
     if lost:
         media_path = os.path.join(os.getcwd(), "media")
         target_img_path = os.path.join(media_path, str(obj.img))
@@ -230,7 +239,7 @@ class FoundPostView(APIView):
         founder.name = request.POST.get('name')
         founder.description = request.POST.get('description')
         founder.location = request.POST.get('location')
-        founder.marker_id=request.POST.get('marker_id')
+        founder.marker_id = request.POST.get('marker_id')
         founder.date_found = request.POST.get('date')
         founder.save()
         align_faces.align_face(os.path.join(images_path, str(founder.img)))
@@ -252,7 +261,7 @@ class LostPostView(APIView):
         loser.user = request.user
         loser.latitude = request.POST.get('latitude')
         loser.longitude = request.POST.get('longitude')
-        loser.marker_id=request.POST.get('marker_id')
+        loser.marker_id = request.POST.get('marker_id')
         data = request.POST.get('image')
 
         name = str(uuid.uuid4())
@@ -290,10 +299,10 @@ class LostView(APIView):
                 'description': loser.description,
                 'img': loser.img.url,
                 'location': loser.location,
-                'latitude':loser.latitude,
-                'longitude':loser.longitude,
+                'latitude': loser.latitude,
+                'longitude': loser.longitude,
                 'date_lost': loser.date_lost,
-                'phone_no':loser.user.profile.phone_no
+                'phone_no': loser.user.profile.phone_no
 
             }
             for loser in Loser.objects.all()])
@@ -313,10 +322,10 @@ class FoundView(APIView):
                 'description': founder.description,
                 'img': founder.img.url,
                 'location': founder.location,
-                'latitude':founder.latitude,
-                'longitude':founder.longitude,
+                'latitude': founder.latitude,
+                'longitude': founder.longitude,
                 'date_found': founder.date_found,
-                'phone_no':founder.user.profile.phone_no
+                'phone_no': founder.user.profile.phone_no
 
             }
             for founder in Founder.objects.all()])
@@ -426,25 +435,20 @@ class CamView(APIView):
 
     def post(self, request):
         print(request.FILES.get('file'))
-        cam = CameraModel()
-        cam.image = request.FILES.get('file')
-        cam.location = request.POST.get('loc')
-        cam.save()
-        cam_testing(cam)
+        founder_cam = Founder.objects.get(pk=1)
+        founder_cam.img = request.FILES.get("file")
+        founder_cam.save()
+        cam_testing(founder_cam)
         return Response()
 
 
-class Dummy(APIView):
-    def post(self, request):
-
-        return Response()
 
 
 class FoundHomeView(APIView):
-  permission_classes = (IsAuthenticated,)
-  authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (TokenAuthentication,)
 
-  def get(self, request):
+    def get(self, request):
         records = []
         for image in request.user.founder_set.all():
             for record in image.record_set.all():
@@ -457,7 +461,8 @@ class FoundHomeView(APIView):
                     'founder_img': record.founder.img.url,
                     'latitude': record.loser.latitude,
                     'longitude': record.loser.longitude,
-                    'description': record.loser.description
+                    'description': record.loser.description,
+                    'camera': record.camera
                 }
                 records.append(temp)
         return Response(records)
@@ -480,7 +485,10 @@ class LostHomeView(APIView):
                     'founder_img': record.founder.img.url,
                     'latitude': record.founder.latitude,
                     'longitude': record.founder.longitude,
-                    'description': record.founder.description
+                    'description': record.founder.description,
+                    'camera': record.camera,
+                    
+                    
                 }
                 records.append(temp)
         return Response(records)
