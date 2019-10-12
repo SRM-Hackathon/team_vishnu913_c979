@@ -4,15 +4,15 @@ import './pages/mainPage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() => runApp(MyApp());
-var host='http://87046cfe.ngrok.io/';
+var host='http://2654d851.ngrok.io/';
 var change = '';
 var port='80';
-var path='87046cfe.ngrok.io';
+var path='2654d851.ngrok.io';
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-	debugShowCheckedModeBanner: false,
+      debugShowCheckedModeBanner: false,
       home: HomePage(),
     );
   }

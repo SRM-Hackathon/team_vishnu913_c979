@@ -32,9 +32,12 @@ class _MainPageState extends State<MainPage> {
 
   Completer<GoogleMapController> _controller = Completer();
   static final MarkerId markerId = MarkerId("ChIJg-0KkVVYqDsRnQo3zeVdh4A");
+  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
+    new GlobalKey<RefreshIndicatorState>();
+
   List<Marker> markers = <Marker>[];
 
-  final Marker marker = Marker(
+  final Marker marker = Marker( 
     markerId: markerId,
     position: LatLng(37.42796133580664, -122.085749655962),
     onTap: () {
@@ -79,6 +82,11 @@ class _MainPageState extends State<MainPage> {
       getFounderRecord();
       isLoading = false;
     });
+  }
+
+  void call() async{
+    await getFounderRecord();
+    await getLoserRecord();
   }
 
   Future<Null> refresh2() async {
@@ -232,7 +240,7 @@ class _MainPageState extends State<MainPage> {
                                                         path:
                                                             item["founder_img"])
                                                     .toString(),
-                                                scale: 1.8,
+                                                scale: 2.0,
                                               ),
                                               margin: EdgeInsets.all(10.0),
                                             ),
@@ -459,6 +467,15 @@ class _MainPageState extends State<MainPage> {
                   backgroundColor: Colors.deepPurpleAccent[200],
                   title: Text("Lost But Found"),
                   centerTitle: true,
+                  actions: <Widget>[
+                    Container(
+                      padding:EdgeInsets.symmetric(horizontal: 10.0),
+                      child: IconButton(
+                        icon: Icon(Icons.refresh),
+                        onPressed: call,
+                        
+                        ),)
+                  ],
                 ),
                 drawer: Drawer(
                   child: ListView(
@@ -539,6 +556,15 @@ class _MainPageState extends State<MainPage> {
 
                   title: Text("Lost But Found"),
                   centerTitle: true,
+                  actions: <Widget>[
+                    Container(
+                      padding:EdgeInsets.symmetric(horizontal: 10.0),
+                      child: IconButton(
+                        icon: Icon(Icons.refresh),
+                        onPressed: call,
+                        
+                        ),)
+                  ],
                 ),
                 drawer: Drawer(
                   child: ListView(
