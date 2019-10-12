@@ -19,7 +19,8 @@ Our Lost But Found suite provides a solution to ease the process of finding them
           -Dlib
           -OpenCv2
           -React
-          -Redux
+          -ContextAPI
+          -Google Maps API
           -Flutter
           -Firebase
           -Twilio
