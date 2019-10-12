@@ -7,6 +7,7 @@ import requests
 import threading
 import numpy as np
 
+
 def send_to_server(image):
     image = cv2.resize(image,(300,300))
     encoded = cv2.imencode(".jpg",image)[1]
