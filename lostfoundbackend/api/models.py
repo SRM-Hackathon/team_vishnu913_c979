@@ -4,13 +4,13 @@ from django.contrib.auth.models import User
 
 class TwilioModel(models.Model):
     whatsapp_num = models.CharField(max_length=10)
-    image = models.ImageField(upload_to="images")
+    image = models.ImageField()
     name = models.TextField()
     location = models.TextField()
     lost = models.BooleanField(default=False)
 
 class CameraModel(models.Model):
-    image = models.ImageField(upload_to="images")
+    image = models.ImageField()
     location = models.TextField()
 
 class Profile(models.Model):
@@ -19,9 +19,9 @@ class Profile(models.Model):
     device_id=models.TextField(null=True,blank=True)
 
 class Founder(models.Model):
-    user=models.OneToOneField(User,on_delete=models.CASCADE)
+    user=models.ForeignKey(User,on_delete=models.CASCADE)
     name=models.TextField()
-    img=models.ImageField(upload_to="images")
+    img=models.ImageField()
     latitude=models.CharField(max_length=100)
     longitude=models.CharField(max_length=100)
     description=models.TextField()
@@ -30,9 +30,9 @@ class Founder(models.Model):
    
 
 class Loser(models.Model):
-    user=models.OneToOneField(User,on_delete=models.CASCADE)
+    user=models.ForeignKey(User,on_delete=models.CASCADE)
     name=models.TextField()
-    img=models.ImageField(upload_to="images")
+    img=models.ImageField()
     latitude=models.CharField(max_length=100)
     longitude=models.CharField(max_length=100)
     location=models.TextField()
@@ -41,5 +41,5 @@ class Loser(models.Model):
    
 
 class Record(models.Model):
-      founder=models.ManyToManyField(Founder)
-      loser=models.ManyToManyField(Loser)    
+      founder=models.ForeignKey(Founder,on_delete=models.CASCADE)
+      loser=models.ForeignKey(Loser,on_delete=models.CASCADE)    

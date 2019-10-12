@@ -13,8 +13,9 @@ import os
 
 
 def align_face(path):
+	print(path)
 	detector = dlib.get_frontal_face_detector()
-	predictor = dlib.shape_predictor(os.path.join(os.getcwd(),"lostfoundapp","shape_predictor_68_face_landmarks.dat"))
+	predictor = dlib.shape_predictor(os.path.join(os.getcwd(),"api","shape_predictor_68_face_landmarks.dat"))
 	fa = FaceAligner(predictor, desiredFaceWidth=256)
 	image = cv2.imread(path)
 	image = imutils.resize(image, width=800)
